@@ -9,39 +9,34 @@
 var app = angular.module('angular-magento-oauth', []).service('oauth', function ($q, $http, utility) {
 
     var authObj;
-    var callbackUrl = 'http://localhost/notused';
-    var signatureMethod = 'HMAC-SHA1';
-    var oauthVersion = '1.0';
+    var oauth_callback = 'http://localhost/notused';
+    var oauth_signature_method = 'HMAC-SHA1';
+    var oauth_version = '1.0';
 
     var initiate = function () {
 
-        var reqObj = {
-            httpMethod: 'GET',
-            url: '/oauth/initiate',
-            parameters: {
-                'oauth_callback': callbackUrl,
-                'oauth_consumer_key': authObj.consumerKey,
-                'oauth_nonce': utility.createNonce(),
-                'oauth_signature_method': signatureMethod,
-                'oauth_timestamp': utility.createTimestamp(),
-                'oauth_version': oauthVersion
-            },
-        };
-
-        var sig = oauthSignature.generate(reqObj.httpMethod, reqObj.url, reqObj.parameters, authObj.consumerSecret);
-        console.log('sig=',sig);
-
-        var req = {
-            method: reqObj.httpMethod,
-            url: authObj.server + reqObj.url,
-            headers: {
-                'Authorization': 'OAuth oauth_callback="' + reqObj.parameters.oauth_callback + '", oauth_consumer_key="' + reqObj.parameters.oauth_consumer_key + '", oauth_nonce="' + reqObj.parameters.oauth_nonce + '", oauth_signature="' + sig + '", oauth_signature_method="' + reqObj.parameters.oauth_signature_method + '", oauth_timestamp="' + reqObj.parameters.oauth_timestamp + '", oauth_version="' + reqObj.parameters.oauth_version + '"',
-                'Content-type': 'text/plain'
+        var request_data = {
+            method: 'GET',
+            url: authObj.server + '/oauth/initiate',
+            data : {
+                oauth_callback: oauth_callback,
+                oauth_version: oauth_version
             }
         };
 
-        console.log('header=', req.headers.Authorization);
+        var oauth = window.OAuth({
+            consumer: {
+                public: authObj.consumerKey,
+                secret: authObj.consumerSecret
+            },
+            signature_method: oauth_signature_method
+        });
 
+        var req = {
+            method: request_data.method,
+            url: request_data.url,
+            headers: oauth.toHeader(oauth.authorize(request_data))
+        };
 
         $http(req).success(function (data) {
             console.log('success=', data);
