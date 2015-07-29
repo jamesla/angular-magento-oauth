@@ -6,33 +6,37 @@
  * angular-magento-oauth service
  *
  */
-angular.module('angular-magento-oauth', []).service('oauth', function ($q, $http) {
+var app = angular.module('angular-magento-oauth', []).service('oauth', function ($q, $http, utility) {
 
     var authObj;
-
-    //init
-    var createNonce = function () {
-        var text = "";
-        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        for (var i = 0; i < length; i++) {
-            text += possible.charAt(Math.floor(Math.random() * 32));
-        }
-        return text;
-    }
-
-    var createSignature = function () {
-        return 'yFVvyB5ZYdHYoMleoCq4Tkzx1HY%3D';
-    }
+    var callbackUrl = 'http://localhost/notused';
+    var signatureMethod = 'HMAC-SHA1';
+    var oauthVersion = '1.0';
 
     var initiate = function () {
-        //var authObject =
+
+        var reqObj = {
+            httpMethod: 'GET',
+            url: '/oauth/initiate',
+            parameters: {
+                'oauth_callback': callbackUrl,
+                'oauth_consumer_key': authObj.consumerKey,
+                'oauth_nonce': utility.createNonce(),
+                'oauth_signature_method': signatureMethod,
+                'oauth_timestamp': utility.createTimestamp(),
+                'oauth_version': oauthVersion
+            },
+        };
+
+        var sig = oauthSignature.generate(reqObj.httpMethod, reqObj.url, reqObj.parameters, authObj.consumerSecret);
+        console.log('sig=',sig);
 
         var req = {
-            method: 'GET',
-            url: authObj.server + '/oauth/initiate',
+            method: reqObj.httpMethod,
+            url: authObj.server + reqObj.url,
             headers: {
-                'Authorization': 'OAuth oauth_callback="http://localhost/callback", oauth_consumer_key="5ade3de48764070d3d68a0b896d51548", oauth_nonce="8LfHlJ1wUsImlHjEE7MNekI1JpcAAJxt", oauth_signature="ugX6mwIzUy5TNkWJXDUTVdpgJxY%3D", oauth_signature_method="HMAC-SHA1", oauth_timestamp="1438046924", oauth_version="1.0"',
-                'Content-type' : 'text/plain'
+                'Authorization': 'OAuth oauth_callback="' + reqObj.parameters.oauth_callback + '", oauth_consumer_key="' + reqObj.parameters.oauth_consumer_key + '", oauth_nonce="' + reqObj.parameters.oauth_nonce + '", oauth_signature="' + sig + '", oauth_signature_method="' + reqObj.parameters.oauth_signature_method + '", oauth_timestamp="' + reqObj.parameters.oauth_timestamp + '", oauth_version="' + reqObj.parameters.oauth_version + '"',
+                'Content-type': 'text/plain'
             }
         };
 
@@ -52,5 +56,20 @@ angular.module('angular-magento-oauth', []).service('oauth', function ($q, $http
         authObj = authObject;
         initiate();
     };
-})
-;
+});
+
+app.service('utility', function () {
+    //init
+    this.createTimestamp = function () {
+        return Math.round((new Date()).getTime() / 1000.0);
+    }
+
+    this.createNonce = function () {
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        for (var i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * 32));
+        }
+        return text;
+    };
+});
