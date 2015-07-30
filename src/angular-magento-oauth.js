@@ -12,13 +12,16 @@ var app = angular.module('angular-magento-oauth', []).service('oauth', function 
     var oauth_callback = 'http://localhost/notused';
     var oauth_signature_method = 'HMAC-SHA1';
     var oauth_version = '1.0';
+    var oauth_token;
+    var oauth_token_secret;
+    var form_key;
 
     var initiate = function () {
 
         var request_data = {
             method: 'GET',
             url: authObj.server + '/oauth/initiate',
-            data : {
+            data: {
                 oauth_callback: oauth_callback,
                 oauth_version: oauth_version
             }
@@ -38,18 +41,65 @@ var app = angular.module('angular-magento-oauth', []).service('oauth', function 
             headers: oauth.toHeader(oauth.authorize(request_data))
         };
 
-        $http(req).success(function (data) {
-            console.log('success=', data);
-        }).error(function (data) {
-            console.log('error=', data);
-        });
 
-        return $q;
+        return $http(req);
+
+    };
+
+    var authorize = function () {
+        var request_data = {
+            method: 'GET',
+            url: authObj.server + '/oauth/authorize?oauth_token=' + oauth_token + '&auth_verifier=' + oauth_token_secret
+        };
+
+        var req = {
+            method: request_data.method,
+            url: request_data.url
+        };
+
+
+        return $http(req);
+
+    };
+
+    var login = function () {
+        var request_data = {
+            method: 'POST',
+            url: authObj.server + '/customer/account/loginPost',
+            data: {
+                'login[username]': authObj.username,
+                'login[password]': authObj.password,
+                form_key: form_key,
+                oauth_token : oauth_token
+            }
+        };
+
+        var req = {
+            method: request_data.method,
+            url: request_data.url,
+            data : request_data.data
+        };
+
+        return $http(req);
     };
 
     this.getRequestToken = function (authObject) {
         authObj = authObject;
-        initiate();
+        //initiate().then(authorize());
+
+        var x = initiate().success(function (data) {
+            oauth_token = data.split('&')[0].split('=')[1];
+            oauth_token_secret = data.split('&')[1].split('=')[1];
+            console.log('oauth_token1=', oauth_token);
+
+            authorize().success(function (data) {
+                form_key = $('<div></div>').append(data).find('input[name=form_key]')[0].value;
+
+                login().success(function(data){
+                    console.log('here');
+                })
+            });
+        });
     };
 });
 
