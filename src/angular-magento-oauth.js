@@ -77,8 +77,17 @@ var app = angular.module('angular-magento-oauth', []).service('oauth', function 
         var req = {
             method: request_data.method,
             url: request_data.url,
-            data : request_data.data
+            data : request_data.data,
+            //withCredentials: true
         };
+
+
+$.ajax(req)
+  .always(function( data, a, b, c ) {
+    console.log('jquery call', a, b, c);
+    console.log('getAllHeaders', b.getAllResponseHeaders())
+  });
+
 
         return $http(req);
     };
@@ -95,8 +104,12 @@ var app = angular.module('angular-magento-oauth', []).service('oauth', function 
             authorize().success(function (data) {
                 form_key = $('<div></div>').append(data).find('input[name=form_key]')[0].value;
 
-                login().success(function(data){
-                    console.log('here');
+                login()
+                .success(function(data, a, b, c, d){
+                    console.log('here', data, a, b, c, d);
+                })
+                .error(function(data, a, b, c, d){
+                    console.log('error', data, a, b, c, d);
                 })
             });
         });
